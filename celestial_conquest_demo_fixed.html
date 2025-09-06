@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Celestial Conquest Demo</title>
+  <style>
+    body { font-family: sans-serif; background:#111; color:#eee; text-align:center; }
+    #pack { width:200px; height:300px; background:#444; margin:20px auto; border:2px solid #999;
+            display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    #pack.opened { display:none; }
+    .card { width:120px; height:180px; background:#fff; color:#000; border:2px solid #333;
+            border-radius:8px; margin:10px; padding:5px;
+            cursor:grab; display:flex; flex-direction:column; justify-content:space-between; }
+    .rare { border-color: gold; }
+    .uncommon { border-color: dodgerblue; }
+    .common { border-color: gray; }
+    #hand, #table, #ai { min-height:200px; margin:20px; border:2px dashed #666; padding:10px; }
+    #hand { background:#222; }
+    #table { background:#333; }
+    #ai { background:#222; }
+    h4 { margin:0; font-size:14px; }
+    p { margin:2px 0; font-size:12px; }
+  </style>
+</head>
+<body>
+  <div id="pack">✨ Click to Open Booster ✨</div>
+  <div id="hand">Your Hand:</div>
+  <div id="table">Battlefield:</div>
+  <div id="ai">AI Opponent:</div>
+
+  <script>
+    const rarities = [
+      { type:"common", chance:0.7 },
+      { type:"uncommon", chance:0.25 },
+      { type:"rare", chance:0.05 }
+    ];
+
+    const cardPool = {
+      common: [
+        {name:"Star Grunt", atk:2, def:1, hp:3},
+        {name:"Wasteland Beast", atk:3, def:2, hp:2},
+        {name:"Scout Drone", atk:1, def:1, hp:2}
+      ],
+      uncommon: [
+        {name:"Flame Knight", atk:4, def:2, hp:5},
+        {name:"Aqua Serpent", atk:3, def:3, hp:6}
+      ],
+      rare: [
+        {name:"Ancient Relic", atk:"+2 bonus", def:"—", hp:"equip"},
+        {name:"Cosmic Guardian", atk:5, def:4, hp:8}
+      ]
+    };
+
+    const handDiv = document.getElementById("hand");
+    const tableDiv = document.getElementById("table");
+    const aiDiv = document.getElementById("ai");
+
+    function drawCard(){
+      let roll=Math.random();
+      let rarity="common";
+      for(let r of rarities){
+        if(roll<r.chance){ rarity=r.type; break; }
+        roll-=r.chance;
+      }
+      let pool=cardPool[rarity];
+      let card=pool[Math.floor(Math.random()*pool.length)];
+      return {...card, rarity};
+    }
+
+    function makeCardEl(card){
+      let el=document.createElement("div");
+      el.className="card "+card.rarity;
+      el.innerHTML = `
+        <h4>${card.name}</h4>
+        <p>ATK: ${card.atk}</p>
+        <p>DEF: ${card.def}</p>
+        <p>HP: ${card.hp}</p>
+        <p style="font-size:10px;color:#666;">${card.rarity.toUpperCase()}</p>
+      `;
+      el.draggable=true;
+      el.ondragstart=e=>{ e.dataTransfer.setData("card", JSON.stringify(card)); };
+      return el;
+    }
+
+    function openPack(){
+      document.getElementById("pack").classList.add("opened");
+      for(let i=0;i<5;i++){
+        let c=drawCard();
+        let el=makeCardEl(c);
+        handDiv.appendChild(el);
+      }
+    }
+
+    document.getElementById("pack").onclick=openPack;
+
+    tableDiv.ondragover = e=>e.preventDefault();
+    tableDiv.ondrop = e=>{
+      e.preventDefault();
+      let card=JSON.parse(e.dataTransfer.getData("card"));
+      let el=makeCardEl(card);
+      tableDiv.appendChild(el);
+      setTimeout(aiPlay,1000);
+    };
+
+    function aiPlay(){
+      let c=drawCard();
+      let el=makeCardEl(c);
+      aiDiv.appendChild(el);
+    }
+  </script>
+</body>
+</html>
