@@ -1,0 +1,129 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Celestial Conquest Demo</title>
+<style>
+body { font-family: Arial, sans-serif; background-color: #111; color: #eee; margin: 0; padding: 0;}
+#game { display: flex; flex-direction: column; align-items: center; padding: 10px;}
+#boosterArea, #handArea, #fieldArea { display: flex; flex-wrap: nowrap; overflow-x: auto; margin: 10px;}
+.card { width: 120px; height: 180px; border: 2px solid #fff; margin: 5px; padding: 5px; background-color: #222; color: #fff; text-align: center; cursor: pointer;}
+button { margin: 5px; padding: 10px; cursor: pointer;}
+#log { background-color: #222; border: 1px solid #555; width: 80%; height: 150px; overflow-y: auto; margin-top: 10px; padding: 5px;}
+</style>
+</head>
+<body>
+<div id="game">
+<h1>Celestial Conquest Demo</h1>
+<div>
+<button id="newBoosterBtn">Open New Booster</button>
+<button id="endTurnBtn">End Turn</button>
+<button id="resetBtn">Reset Game</button>
+</div>
+<div id="players">
+<p>Player Health: <span id="playerHealth">20</span></p>
+<p>AI Health: <span id="aiHealth">20</span></p>
+</div>
+<div id="boosterArea"></div>
+<h2>Your Hand</h2>
+<div id="handArea"></div>
+<h2>Field</h2>
+<div id="fieldArea"></div>
+<h2>Combat Log</h2>
+<div id="log"></div>
+</div>
+
+<script>
+let playerHealth = 20;
+let aiHealth = 20;
+let playerHand = [];
+let aiHand = [];
+let playerField = [];
+let aiField = [];
+let playerLocations = [];
+let aiLocations = [];
+const log = document.getElementById('log');
+const boosterArea = document.getElementById('boosterArea');
+const handArea = document.getElementById('handArea');
+const fieldArea = document.getElementById('fieldArea');
+const playerHealthSpan = document.getElementById('playerHealth');
+const aiHealthSpan = document.getElementById('aiHealth');
+
+function updateDisplay(){
+    playerHealthSpan.textContent = playerHealth;
+    aiHealthSpan.textContent = aiHealth;
+    handArea.innerHTML = '';
+    playerHand.forEach((c,i)=>{
+        let div = document.createElement('div');
+        div.className = 'card';
+        div.textContent = c.name+"\nHP:"+c.hp+"\nATK:"+c.atk;
+        div.onclick = ()=>playCard(c,i);
+        handArea.appendChild(div);
+    });
+    fieldArea.innerHTML = '';
+    [...playerField,...aiField].forEach(c=>{
+        let div = document.createElement('div');
+        div.className = 'card';
+        div.textContent = c.name+"\nHP:"+c.hp+"\nATK:"+c.atk+"\nLOC:"+c.location;
+        fieldArea.appendChild(div);
+    });
+}
+
+function logMsg(msg){ log.innerHTML += msg+"<br>"; log.scrollTop = log.scrollHeight; }
+
+function generateCard(isLocation=false){
+    const types = isLocation ? ['Volcanic Plains','Mystic Forest','Frozen Tundra'] : ['Hero','Villain','Creature'];
+    let type = types[Math.floor(Math.random()*types.length)];
+    return {name:type, hp:Math.floor(Math.random()*5)+5, atk:Math.floor(Math.random()*3)+1, location:isLocation?type:null};
+}
+
+function openBooster(isPlayer=true){
+    let booster = [];
+    // ensure at least one location
+    booster.push(generateCard(true));
+    for(let i=0;i<2;i++){ booster.push(generateCard(false)); }
+    if(isPlayer){
+        playerHand.push(...booster);
+    } else { aiHand.push(...booster); }
+    updateDisplay();
+}
+
+function playCard(card,index){
+    if(!card.location){ logMsg("Place a location first!"); return; }
+    playerField.push(card);
+    playerHand.splice(index,1);
+    updateDisplay();
+}
+
+function endTurn(){
+    // simple AI: place first card from hand if exists
+    if(aiHand.length>0){
+        let card = aiHand.shift();
+        if(!card.location){ card.location = generateCard(true).name; aiLocations.push(card.location); }
+        aiField.push(card);
+        logMsg("AI played "+card.name+" at "+card.location);
+    }
+    // simple combat: each player card attacks first opposing card
+    if(playerField.length>0 && aiField.length>0){
+        let p = playerField[0]; let a = aiField[0];
+        a.hp -= p.atk; p.hp -= a.atk;
+        logMsg(p.name+" attacks "+a.name+" for "+p.atk+" damage. "+a.name+" counterattacks for "+a.atk+".");
+        if(a.hp<=0){ logMsg(a.name+" defeated!"); aiField.shift(); aiHealth -=1;}
+        if(p.hp<=0){ logMsg(p.name+" defeated!"); playerField.shift(); playerHealth -=1;}
+    }
+    updateDisplay();
+}
+
+document.getElementById('newBoosterBtn').onclick = ()=>openBooster(true);
+document.getElementById('endTurnBtn').onclick = ()=>endTurn();
+document.getElementById('resetBtn').onclick = ()=>{ location.reload(); };
+// initial game setup
+openBooster(true);
+openBooster(false);
+updateDisplay();
+logMsg("Game start! Open boosters and place your location first.");
+</script>
+</body>
+</html>
